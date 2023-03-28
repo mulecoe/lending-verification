@@ -1,0 +1,154 @@
+#%RAML 1.0 DataType
+properties:
+  MsgRsHdr:
+    type : object
+    required: true
+    properties:
+        RqUID:
+          type : string
+          description: Request Identifier. Sent by a server as a universally unique identifier for the message. Used to correlate responses with requests. Sent by a client to request the asynchronous response on the previously submitted message.
+          required: true
+          example: "{0C42D547-D5E8-4DEB-9D69-94BAC81D390F}"
+        Status:
+          type : object
+          required: true
+          properties:
+            StatusCode:
+              type : number
+              description: 0 - “OK”; -1 - “BUR. ERROR” (Bureau Error); -2 - “INTERNAL ERROR”; -3 - “LINE ERROR”; -4 - “NO HIT”; -5 - “AUTHENTICATION ERROR”; -6 - “IN_PROC”
+              required: true
+              example: 0 
+            ServerStatusCode:
+              type : string
+              required: false
+              example: "0" 
+            Severity:
+              type : string
+              description: Error; Warn; Info
+              required: true
+              example: "Info"
+            StatusDesc:
+              type: string
+              description: Explanatory text associated with the status code.
+              required: true
+              example: "OK"
+            AdditionalStatus:
+              type: array
+              required: false
+              items:
+                properties:                  
+                  StatusCode:
+                    type : number
+                    required: false
+                    example: 0
+                  ServerStatusCode:
+                    type : string
+                    required: false
+                    example: "0" 
+                  Severity:
+                    type : string
+                    required: false
+                    example: "Info"
+                  StatusDesc:
+                    type: string
+                    required: false
+                    example: "OK"
+  RefNum:
+    type : string
+    description: Customer supplied reference
+    required: false
+    example: "Y"
+  AreaNum:
+    type : number
+    description: Which state a number was issued in or to which special group the number was issued to
+    required: false
+    example: 111
+  GroupNum:
+    type : number
+    description: Prior to randomization, Group number paired with Area number is used to determine when SSN was issued.
+    required: false
+    example: 2223   
+  IssueDateRange:
+    type: object
+    required: false
+    properties:
+        StartDt:
+          type : string
+          description: Start date of date range for issuance
+          required: true
+          example: "1934-01-01T00:00:00"
+        EndDt:
+          type : string
+          description: End date of date range for issuance
+          required: true
+          example: "1951-01-01T00:00:00"
+        Source:  
+          type : string
+          description: Source
+          required: false
+        EffDt:
+          type: string
+          description: EffDt
+          required: false
+  BeginRange:
+    type : number
+    description: Begin Range Min/Max = 0000/9999
+    required: false
+    example: 1
+  EndRange:
+    type : number
+    description: End Range Min/Max = 0000/9999
+    required: false
+    example: 1
+  StateProv:  
+    type : string
+    description: State Issued
+    required: false
+    example: "NY"
+  CodeDigit:
+    type: object
+    required: false
+    properties:
+        Code:
+          type : string
+          description: Code
+          required: true
+          example: "2"
+        Description:
+          type : string
+          description: Code Description
+          required: true
+          example: "Issued, Beginning and Ending Date Provided" 
+  SSNStatus:  
+    type : string
+    description: SSN Status
+    required: false
+    example: "Item1"         
+  Message:
+    type: array
+    required: false
+    items:
+      properties:                  
+        MsgClass:
+          type : string
+          description: Identification of the message or alert source.
+          required: false
+          example: "0"
+        MsgCode:
+          type : string
+          required: false
+          example: "0" 
+        Text:
+          type : string
+          description: Explanatory text or message
+          required: false
+          example: "Info"
+        Source:
+          type: string
+          required: false
+          example: "OK"
+        EffDt:
+          type: string
+          required: false
+          example: "OK"                                  
+        

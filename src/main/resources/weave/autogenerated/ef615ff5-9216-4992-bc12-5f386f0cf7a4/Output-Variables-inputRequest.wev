@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_ef615ff5_9216_4992_bc12_5f386f0cf7a4_Output_Variables_inputRequest = Any
+

@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
+	<flow name="sfdc-identity-apiFlow" doc:id="03c14286-17af-41bb-8f92-4478171e8a57" >
+		<salesforce:subscribe-topic-listener doc:name="SF auto verification" doc:id="b861b9c5-8c77-440e-ae82-9d66d45909ac" config-ref="Salesforce_Config" topic="autoverification"/>
+		<ee:transform doc:name="sf loan-applicant data" doc:id="57ad6c43-adcf-4488-a58e-8cd09063ab9d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="loanApplicant" ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b6758b84-073b-4f2a-9bee-d094a251f758" message="#[payload]" />
+		<http:request method="GET" doc:name="salesforce agg request" doc:id="086f80fe-6fc6-4be5-901b-805547f4001b" target="salesforceAggResponse" config-ref="sfdc-aggregator-httpRequest" path="${sfdc.loanApplicant}">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"id" : vars.loanApplicant.Id
+}]]]></http:query-params>
+		</http:request>
+		<mongo:find-documents doc:name="get plaid credentials" doc:id="ad643f3a-7e54-4e55-b546-113d5737d760" config-ref="MongoDB_Config" collectionName="${mongodb.plaidUserCredsCol}" fields=",">
+			<mongo:query ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	contact_id : vars.salesforceAggResponse.Contact.Id[0]
+}]]]></mongo:query>
+		</mongo:find-documents>
+		<choice doc:name="Check if plaid creds are attached with loan-applicant" doc:id="a5b82a24-fdf5-429c-bbc3-b66c44fee8eb" >
+			<when expression="#[sizeOf(payload) &gt; 0]">
+				<ee:transform doc:name="prepare plaid request" doc:id="3b278603-1927-4585-84a7-f00000cccaf7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+(payload map({
+    client_id : $.client_id,
+    secret : $.secret,
+    access_token : Mule::p('plaid.accessToken')
+}))[0]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<http:request method="POST" doc:name="get plaid profiles" doc:id="1ee9c95c-7faf-46d4-9dbc-fdea3432dbeb" target="plaidProfiles" config-ref="plaid_identity-Http-request" path="/identity/get"/>
+				<logger level="INFO" doc:name="plaid profiles" doc:id="e9af3fff-e909-4318-b589-35ac7c14a110" message="#[vars.plaidProfiles]"/>
+				<async doc:name="Async" doc:id="326e61eb-b7e1-489d-b98e-748af714f367" >
+					<flow-ref doc:name="Flow Reference" doc:id="9529387a-20ff-407a-9f86-99ca87218de1" name="verify-profile-detaols-implFlow" />
+				</async>
+				<ee:transform doc:name="data proccessing response" doc:id="59a8a418-80cc-4362-bb51-6dfe8cce145a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "salesforce data verfied with plaid profiles"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			
+</when>
+			<otherwise >
+				<ee:transform doc:name="data not found response" doc:id="d1ab039b-a510-4398-8aef-97e0fe57874c" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "not found"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[404]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="0ec8a97c-1752-4ed0-94a6-b4f34066c80d" message="#[payload]"/>
+			
+</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="output response" doc:id="5ffa0644-bee4-4b34-b6b5-fce203cb81b0" message='#[payload]'/>
+	</flow>
+	<flow name="verify-profile-detaols-implFlow" doc:id="0b620fae-f46c-43af-9aa2-b38a93a72e2c" >
+		<logger level="INFO" doc:name="Logger" doc:id="e3058768-3efb-4269-b09b-4c641a94c5e6" message="#[payload]"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="7d897374-1f20-4146-a92b-076c510f9bf2" >
+			<route >
+				<ee:transform doc:name="mailing city varify" doc:id="dc05a5dd-c9cd-4b8b-918c-8c1ec49f9d02">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var plaidCity = (flatten(flatten(vars.plaidProfiles.accounts map($.owners.addresses map(($.data.city)))))) map(lower($))
+
+var sfCity = (vars.salesforceAggResponse.Contact..MailingCity) map(lower($))
+---
+ (plaidCity map(if(sfCity contains($)) true  else false)) contains true
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="0e73e055-8dd1-483f-96cb-5a3dd9b76a2a" message='#["mailing city verify " :payload]' />
+				<ee:transform doc:name="Prepare SF loan applicant citizenship update" doc:id="16411524-d11d-45fa-8bea-e15c08b06e64">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
+	Citizenship_Verified__c : payload,
+	Citizenship_Verification_Source__c : "Plaid"
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<salesforce:update doc:name="update sf loan-aplicant obj" doc:id="7015106a-cb10-4c2f-b8d1-07e1523176a2" config-ref="Salesforce_Config" type="Loan_Application__c"/>
+			</route>
+			<route >
+				<ee:transform doc:name="applicant name verify" doc:id="886b087f-d2cf-496a-a53d-fbef24d513ec" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var plaidNames = flatten(vars.plaidProfiles.accounts.owners..names)
+var sfNames = (vars.salesforceAggResponse.LoanApplication..Name)
+---
+(plaidNames map(if(sfNames contains($)) true   else false))contains true
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<choice doc:name="Choice" doc:id="5290cf32-91db-4b4c-9802-10cbe40b4930" >
+					<when expression="#[payload == true]">
+						<ee:transform doc:name="Prepare SF loan applicant name-verifiedupdate" doc:id="bc8feaa9-6e33-4977-aa69-63b62fb94b35">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
+	Name_Verified__c : payload,
+	Name_verification_source__c : "Plaid"
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+						<logger level="INFO" doc:name="Logger" doc:id="0d96ac6f-3c78-4867-9c6a-8e628f50a3a2" message='#["applicant name verify " :payload]' />
+						<salesforce:update doc:name="Update loan-applicant name-verified" doc:id="69c1c090-4c6d-4dba-84f5-85baad602f99" config-ref="Salesforce_Config" type="Loan_Application__c" />
+					</when>
+					<otherwise >
+						<ee:transform doc:name="name verification with microbilt" doc:id="9e33af82-5499-49f9-89d3-92bd5189e136" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+  "SSN": vars.salesforceAggResponse.LoanApplication.SSN__c[0],
+  "Name": {
+    "FirstName": (vars.salesforceAggResponse.LoanApplication.Name[0]) substringBefore  " ",
+    "MiddleName": (vars.salesforceAggResponse.LoanApplication.Name[0] substringAfter  " ") substringBefore  " ",
+    "LastName": (vars.salesforceAggResponse.LoanApplication.Name[0] substringAfterLast  " ")
+  }
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<flow-ref doc:name="Flow Reference" doc:id="4dfce5d8-7b71-47bb-8b00-28d35f6c10dc" name="getSSNNameVerificationFlow"/>
+						<logger level="INFO" doc:name="Logger" doc:id="dc4b8128-7e3d-4c52-bf03-db5b6fd4fbd1" message='#[payload.VerificationFlags.VerificationFlag ~= "Y"]'/>
+						<ee:transform doc:name="Transform Message" doc:id="d31f78ef-d44c-4d54-9ac3-ca48a88a8947" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
+	Name_Verified__c : payload.VerificationFlags.VerificationFlag ~= "Y",
+	Name_verification_source__c : "Microbilt"
+}]]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<salesforce:update type="Loan_Application__c" doc:name="Update loan-applicant name-verified" doc:id="b4b79011-c5eb-4028-89a0-cb1cf6475a1a" config-ref="Salesforce_Config" />
+					</otherwise>
+				</choice>
+			</route>
+			<route >
+				<ee:transform doc:name="applicant mobile varify" doc:id="3420290f-7dd7-44ba-9762-a61c0f3f7b06" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var sfPhone = vars.salesforceAggResponse.Contact..Phone
+var plaidMobiles = flatten(flatten(vars.plaidProfiles.accounts map($.owners.phone_numbers map($.data))))
+---
+
+(plaidMobiles map ((item, index) -> if (sfPhone contains(item)) true else false))  contains  true]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="aa1194d1-5fa4-494b-9944-1000d162c37b" message='#["applicant mobile verify " :payload]'/>
+				<ee:transform doc:name="Prepare SF contact mobile-verify" doc:id="e120f631-6f1e-4ea5-989b-f4a1edd9c238" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.Contact.Id[0],
+	FinServ__MobileVerified__c : payload
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:update type="Contact" doc:name="Contact Mobile-varify Update" doc:id="8f34a220-a159-46e8-8cea-ee56a95fd790" config-ref="Salesforce_Config" />
+			
+</route>
+			<route >
+				<ee:transform doc:name="loan applicant residence address verify" doc:id="7bfb73e6-9e08-4f55-a486-90908d28cd7d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var sfd = vars.salesforceAggResponse.LoanApplicantAddress..ResidenceAddress map(({
+    "city" : lower($.city),
+    "postal_code" : $.postalCode,
+    "region" : lower($.state)
+}))
+
+var pd = flatten(flatten(vars.plaidProfiles.accounts map($.owners.addresses map($.data map({
+    "city" : lower($.city),
+    "postal_code" : $.postal_code,
+    "region" : lower($.region)
+})))))
+---
+(pd map(if(sfd contains($)) true  else false)) contains true]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<choice doc:name="Choice" doc:id="21696063-1667-48db-83bd-9b966eab1924" >
+					<when expression="#[payload == true]">
+						<ee:transform doc:name="Prepare SF loan-applicant-address update" doc:id="9c2c684b-4951-4d4a-8e70-240bf71e6e00">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.LoanApplicantAddress.Id[0],
+	Residence_Address_Verified__c : payload
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+						<logger level="INFO" doc:name="Logger" doc:id="34285987-1333-4229-bc65-a352f2941109" message='#["loan applicant address verify " :payload]' />
+						<salesforce:update doc:name="res-address update with loan-applicant-id" doc:id="c279836e-677e-4141-ba0a-ae551d1c43f6" config-ref="Salesforce_Config" type="LoanApplicantAddress" />
+					</when>
+					<otherwise >
+						<ee:transform doc:name="prepare SSN address validation request" doc:id="b0a43a9d-ff6c-4558-8367-14d86c199580" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "SSN": vars.salesforceAggResponse.LoanApplication.SSN__c[0],
+  "Address": {
+    "Addr1": "7442 SPRING VILLAGE DR ",
+    "City": vars.salesforceAggResponse.LoanApplicantAddress.ResidenceAddress.city[0],
+    "State": vars.salesforceAggResponse.LoanApplicantAddress.ResidenceAddress.state[0],
+    "Zip": vars.salesforceAggResponse.LoanApplicantAddress.ResidenceAddress.postalCode[0]
+  }
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<flow-ref doc:name="Flow Reference" doc:id="368c1418-785b-426f-9209-80326d013e50" name="get-ssnaddress-verificationFlow"/>
+						<ee:transform doc:name="Transform Message" doc:id="f21f3245-1d6f-44c2-afec-85f9562dd9b4" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.LoanApplicantAddress.Id[0],
+	Residence_Address_Verified__c : payload.VerificationFlags.VerificationFlag ~= "Y"
+}]]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<salesforce:update type="LoanApplicantAddress" doc:name="res-address update with loan-applicant-id" doc:id="b7eeb1dd-c16a-4513-b358-79460ba2d8b0" config-ref="Salesforce_Config" />
+					</otherwise>
+				</choice>
+			</route>
+			<route >
+				<ee:transform doc:name="sf ssn" doc:id="5123ad2b-dda8-4c88-a0ed-bc83e8773340" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "SSN": vars.salesforceAggResponse.LoanApplication..SSN__c[0]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="verify ssn with microbit" doc:id="2a1e7f33-e72b-4b0e-9cd0-b7e638823533" name="getSSNValidationFlow"/>
+				<logger level="INFO" doc:name="Logger" doc:id="0b65b3e9-0766-47d1-94ac-505f4386a85a" message='#["ssn verify status  " : if(payload.IssueDateRange != null) true  else false]'/>
+				<ee:transform doc:name="prepare ssn-verify update" doc:id="518fc3f6-5a12-4d50-aea2-46858c40a3b6" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
+	SSN_Verified__c : if(payload.IssueDateRange != null) true  else false,
+	SSN_Verification_Source__c : "Microbilt "
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:update type="Loan_Application__c" doc:name="update sf ssn-verify" doc:id="d7dc313f-f710-426e-888b-a34c201ab1b4" config-ref="Salesforce_Config" />
+			</route>
+			<route >
+				<flow-ref doc:name="send email verification notify" doc:id="5636ddfe-7c4c-4105-acb0-bdf98fc9f6fe" name="generate-email_verification_link" />
+			</route>
+		
+</scatter-gather>
+		<logger level="INFO" doc:name="Logger" doc:id="02cf3772-40fa-4c6e-9add-56de7dcd7be9" message="#[%dw 2.0
+&#10;output application/json
+&#10;---
+&#10;
+&#10;flatten(payload..payload)]"/>
+	</flow>
+</mule>

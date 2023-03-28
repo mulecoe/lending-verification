@@ -1,0 +1,48 @@
+mongodb:
+    connectionstring: "mongodb+srv://prakashsr:rqEICMCTPE5y0P4M@fiscluster.ulxri.mongodb.net/LendingAcc?authSource=admin&replicaSet=atlas-147hh6-shard-0&w=majority&readPreference=primary&appname=MongoDB%20Compass&retryWrites=true&ssl=true"
+    genericForms: "mongodb+srv://prakashsr:rqEICMCTPE5y0P4M@fiscluster.ulxri.mongodb.net/generic-forms-accelerator?retryWrites=true&w=majority"
+    ssncollectionname: "SSNDetails"
+    creditscorecollectionname: "CreditScoreDetails"
+    plaidUserCredsCol: "UserCredentials"
+    formData: "forms-data"
+http:
+  port: "8081"   
+
+microbilt:
+  ssnrequesthost: "apitest.microbilt.com" 
+  ssnaddressrequestpath: "/SSNAddressVerification"
+  ssnnamerequestpath: "/SSNNameVerification" 
+  ssnphonerequestpath: "/SSNPhoneVerification"    
+  ssnrequestpath: "/SSNValidation/GetReport"    
+  ssnrequesturl: "https://apitest.microbilt.com/SSNAddressVerification/"
+  client_id : "vGf5GSfLoILxAMLYF1QR51AsIJdGvJG4"
+  client_secret : "LAG6YHHPb0RwH7Ci"
+  token_url : "https://apitest.microbilt.com/OAuth/GetAccessToken"
+
+expirySeconds: "172800"
+
+api:
+  autodiscovery: "18554198"
+      
+sfdc:
+  user: "poojagbhat100199-hkjd@force.com"
+  password: "Nous@1234"
+  secToken: "wjT7lVJhzVxDEv2dF25qyYHV"
+  aggReq: "salesforce-lending-api.sg-s1.cloudhub.io"
+  loanApplicant: "/lending/loanapplicant"
+  getStatus: "/lending/email"
+
+plaid:
+  accessToken: "access-sandbox-51876c2f-f3a7-4224-94e0-411599248322"
+  getIdentity: "sandbox.plaid.com"
+  
+email:
+  commsAcc: "nous-comms-accelerator.sg-s1.cloudhub.io"
+  sendMail: "/comms/notify/email"
+  
+  
+otp:
+  host: "multi-factor-authentication-api.sg-s1.cloudhub.io"
+  generate: "/generate-otp-send"
+  verify: "/verify-otp"
+  

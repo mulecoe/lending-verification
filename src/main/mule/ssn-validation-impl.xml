@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
+	<flow name="getSSNValidationFlow" doc:id="ef615ff5-9216-4992-bc12-5f386f0cf7a4" >
+		<ee:transform doc:name="vars.inputRequest" doc:id="ebac1fa8-cd31-4d95-a7f0-8ccf185bf60e" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputRequest" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="580fe553-445c-4fb2-bf78-37c698aa8bc7" message="#[payload]"/>
+		<http:request method="POST" doc:name="Request to microbilt main api" doc:id="93bf28fc-05ac-4ed4-a52e-6cdcad00ac6d" config-ref="HTTP_Request_Address_configuration" path="${microbilt.ssnrequestpath}">
+			<http:body ><![CDATA[#[vars.inputRequest]]]></http:body>
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Accept" : "application/json",
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="e94cae79-71de-4f4d-85da-1f342182ef2a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getSSNPhoneVerificationFlow" doc:id="ef615ff5-9216-4992-bc12-5f386f0cf7a4" >
+		<ee:transform doc:name="vars.inputRequest" doc:id="ebac1fa8-cd31-4d95-a7f0-8ccf185bf60e" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputRequest" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="580fe553-445c-4fb2-bf78-37c698aa8bc7" message="#[payload]"/>
+		<http:request method="POST" doc:name="Request to microbilt main api" doc:id="aea9f86d-d159-48b1-8895-6e725f66ddd3" config-ref="HTTP_Request_Address_configuration" path="${microbilt.ssnphonerequestpath}">
+			<http:body ><![CDATA[#[vars.inputRequest]]]></http:body>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="be07596b-7c55-41cd-a14b-4bb377b1dcbd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getSSNNameVerificationFlow" doc:id="ef615ff5-9216-4992-bc12-5f386f0cf7a4" >
+		<ee:transform doc:name="vars.inputRequest" doc:id="ebac1fa8-cd31-4d95-a7f0-8ccf185bf60e" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputRequest" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="580fe553-445c-4fb2-bf78-37c698aa8bc7" message="#[payload]"/>
+		<http:request method="POST" doc:name="Request to microbilt main api" doc:id="f62ed434-24cd-4650-8aaa-5e815d607f85" config-ref="HTTP_Request_Address_configuration" path="${microbilt.ssnnamerequestpath}">
+			<http:body ><![CDATA[#[vars.inputRequest]]]></http:body>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="6716ebc8-857c-457d-909e-18a03d7cb34d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-ssnaddress-verificationFlow" doc:id="ef615ff5-9216-4992-bc12-5f386f0cf7a4" >
+		<ee:transform doc:name="vars.inputRequest" doc:id="ebac1fa8-cd31-4d95-a7f0-8ccf185bf60e" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputRequest" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="vars.inputRequest" doc:id="580fe553-445c-4fb2-bf78-37c698aa8bc7" message="#[vars.inputRequest]" />
+		<http:request method="POST" doc:name="Request to microbilt main api" doc:id="0d919ff3-6eca-4148-9fb8-3057dc5c0566" config-ref="HTTP_Request_Address_configuration" path="${microbilt.ssnaddressrequestpath}">
+			<http:body ><![CDATA[#[vars.inputRequest]]]></http:body>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="25898059-e681-496d-8b97-bcdcad92009c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-creditscoreFlow" doc:id="5ac56471-0bf0-4902-bc79-854ee14e4404" >
+		<ee:transform doc:name="prepare input payload" doc:id="86901c88-a587-4fe3-9383-1d027f603276" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"SSN": vars.SSN
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7f76fc88-1433-48f3-afac-d60608196f37" message="#[payload]" />
+		<mongo:find-documents doc:name="get creditscore details using ssn" doc:id="17a89b83-feee-461c-ab53-dca9de2888b0" config-ref="MongoDB_Config" collectionName="${mongodb.creditscorecollectionname}" fields=",">
+			<mongo:query ><![CDATA[#[payload]]]></mongo:query>
+		</mongo:find-documents>
+		<choice doc:name="check if creditscore details exists?" doc:id="4ed6e2d2-c5bd-4e35-b4aa-d1dfc05d05ce" >
+			<when expression="#[sizeOf(payload) == 0]" >
+				<ee:transform doc:name="404 not found" doc:id="2acac5b0-4abf-4c03-9681-2c21007fe6ed" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Message": "No Credit Score Found"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[404]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="response" doc:id="6bbf56f8-d89b-4811-83d0-8976f9278a9f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> item- "_id")]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

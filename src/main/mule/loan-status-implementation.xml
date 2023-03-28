@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
+	<flow name="extract-email-implFLow" doc:id="feca95bd-388d-49b8-b8e3-e8f1ec423c26" >
+		<ee:transform doc:name="Transform Message" doc:id="8f939f37-a13e-4c07-9875-fac2a9c1b077">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b99e5f93-264f-46c9-b1c5-967938795b63" message="#[payload]" />
+		<choice doc:name="Choice" doc:id="1601550e-22f8-486e-9fdd-80c2b9ad1be8">
+			<when expression="#[((isEmpty(payload.email)) or (payload.email == null)) and (payload.loanApplicationNumber != null) and (!isEmpty(payload.loanApplicationNumber))]">
+				<logger level="INFO" doc:name="Logger" doc:id="1071c6ea-daf3-4005-9832-81e0db2909e8" message='#["Loan Application Number " : payload.loanApplicationNumber]'/>
+				<http:request method="GET" doc:name="SF aggregator call" doc:id="ae42c8cb-f37c-4d76-b7cf-0d21b43e5b77" config-ref="sfdc-aggregator-httpRequest" path="${sfdc.loanApplicant}">
+					<http:query-params><![CDATA[#[output application/java
+---
+{
+	"id" : payload.loanApplicationNumber
+}]]]></http:query-params>
+				</http:request>
+				<ee:transform doc:name="Transform Message" doc:id="c0076e9e-41df-408b-ae75-1ae384ac55b4">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="email_id"><![CDATA[%dw 2.0
+output application/json
+---
+payload.Contact..Email[0]]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			
+</when>
+			<when expression="#[((isEmpty(payload.email)) or (payload.email == null)) and ((payload.loanApplicationNumber == null) or (isEmpty(payload.loanApplicationNumber)) and(payload.loanreferenceid != null))]">
+				<logger level="INFO" doc:name="Logger" doc:id="258546c3-0c9c-4222-b1e9-b40ef2acaa52" message='#["loan reference ID " : payload."loanreferenceid"]'/>
+				<ee:transform doc:name="mongodb Query" doc:id="eba3594a-03eb-412e-85b4-353e4f0708e8">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	 loan_reference_id: payload."loanreferenceid"
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<mongo:find-documents doc:name="Find documents" doc:id="44b3c657-e9ac-4ece-99a7-e0cdce1b56b0" config-ref="generic-formsDBConnect" collectionName="${mongodb.formData}" fields=",">
+					<mongo:query ><![CDATA[#[payload]]]></mongo:query>
+				</mongo:find-documents>
+				<ee:transform doc:name="Email-ID" doc:id="9aeb0552-c919-48ba-8874-0b0e52263c06">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="email_id"><![CDATA[%dw 2.0
+output application/json
+---
+(payload map($."email-primary"))[0]]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			
+</when>
+			<otherwise>
+				<ee:transform doc:name="EMail_ID" doc:id="4cb6e203-bc25-422d-85e0-0fb6707fd299">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="email_id"><![CDATA[%dw 2.0
+output application/json
+---
+payload.email]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="email ID" doc:id="350e6cd3-cdc7-4f53-b8c5-79eda62f6ebd">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"email" : vars.email_id
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+		<logger level="INFO" doc:name="email id" doc:id="ba6cc66b-61f9-4fe9-85b5-f2da4b52225f" message='#["Email Id " : payload]'/>
+	
+</flow>
+	<flow name="generate-otp-implFlow" doc:id="8ae4988f-e9ed-4ce8-a843-4f452e1d4f6d">
+		<ee:transform doc:name="Input Data" doc:id="1e347835-fe96-4ef7-9b7e-1fdc75413bfb">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="fetch email-id" doc:id="31a4691a-8ba5-4c79-8ed2-61fb018b458b" name="extract-email-implFLow" />
+		<http:request method="POST" doc:name="generate otp" doc:id="e4f5d21c-e075-4b94-8d82-6c62edd026ff" config-ref="otp-sysAPI" path="/generate-otp-send"/>
+		<ee:transform doc:name="tracking_id" doc:id="46095d6a-06af-4796-aeb1-bf2d3fa6f739" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="loan-status-implFlow" doc:id="a1495489-026e-4723-a4cf-feb31d95ef9d" >
+		<ee:transform doc:name="Transform Message" doc:id="a9b3be5c-96a8-4e90-9f28-f2297619e69e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.payload]]></ee:set-payload>
+
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="userData" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="fetch emailID" doc:id="22761f55-869c-4553-ab60-24fa1efc372f" name="extract-email-implFLow" target="emailID"/>
+		<ee:transform doc:name="prepare verify input" doc:id="353ac512-3660-44ee-adf1-b530728434ed" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"otp" : vars.userData.otp,
+	"tracking_id" : vars.userData.'tracking_id'
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="1d31a167-464e-4114-bcae-d058b6465be4" message="#[payload]"/>
+		<http:request method="POST" doc:name="verify OTP" doc:id="0c16b12a-73d7-4d18-a40b-14d745c118d8" config-ref="otp-sysAPI" path="/verify-otp"/>
+		<choice doc:name="Choice" doc:id="41e70259-a451-4e86-bcb4-97ff4bd23335" >
+			<when expression='#[payload.message ~= "otp is verified"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="c4d86256-c583-4c57-9d30-07b54d16414a" message='#["OTP verified successfully"]'/>
+				<http:request method="GET" doc:name="fetch loan application status" doc:id="8c12ae59-044c-495b-b521-d43e0f847ded" config-ref="sfdc-aggregator-httpRequest" path="${sfdc.getStatus}">
+			<http:query-params><![CDATA[#[output application/java
+---
+{
+	"email" : vars.emailID.email
+}]]]></http:query-params>
+		</http:request>
+				<ee:transform doc:name="loan applicant status" doc:id="a2a978fa-930c-44ce-8a19-7b22de77a7ff">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload..Status__c[0]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="48cb8819-4e72-44c8-ba08-93f89c2e1eb9" message="#[payload]" />
+				<parse-template doc:name="Parse Template" doc:id="654462f6-52f1-4a4a-b876-2922ee79a9e5" location="webapp\progress_bar_template.html" outputMimeType="text/html" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="ad5619b1-9c20-4664-84c8-a1faa6f5639d" message='#["Invalid OTP"]'/>
+				<parse-template doc:name="Parse Template" doc:id="43419908-f457-41e1-bd35-b2e54707d775" location="webapp\invalid_otp.html"/>
+			</otherwise>
+		</choice>
+	
+	</flow>
+</mule>

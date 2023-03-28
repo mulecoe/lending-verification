@@ -1,0 +1,126 @@
+#%RAML 1.0
+title: identityreport-sys-api
+
+types:
+  addressrequest: !include dataTypes/ssnAddressVerificationRequestdataType.raml
+  addressresponse: !include dataTypes/ssnAddressVerificationResponsedataType.raml
+  namerequest: !include dataTypes/ssnNameVerificationRequestdataType.raml
+  nameresponse: !include dataTypes/ssnNameVerificationResponsedataType.raml
+  phonerequest: !include dataTypes/ssnPhoneVerificationRequestdataType.raml
+  phoneresponse:  !include dataTypes/ssnPhoneVerificationResponsedataType.raml
+  ssnrequest: !include dataTypes/ssnValidationRequestdataType.raml
+  ssnresponse: !include dataTypes/ssnValidationResponsedataType.raml
+  equifaxresponse: !include dataTypes/equifaxResponsedataType.raml
+   
+
+/api/SSNAddressVerification:
+  post:
+    displayName: SSNAddressVerification
+    description: Get report associated with SSN and Address
+    body:
+      application/json:
+        type: addressrequest
+        example: !include examples/ssnAddressVerificationRequestExample.raml
+    responses:
+      200:
+        body:
+          application/json:
+            type: addressresponse
+            example: !include examples/ssnAddressVerificationResponseExample.raml
+      404:
+        body:
+          application/json:
+            type: addressresponse
+            example: !include examples/ssnAddressVerificationErrorResponseExample.raml      
+/api/SSNNameVerification:
+  post:
+    displayName: SSNNameVerification
+    description: Get report associated with SSN and name
+    body:
+      application/json:
+        type: namerequest
+        example: !include examples/ssnNameVerificationRequestExample.raml
+    responses:
+      200:
+        body:
+          application/json:
+            type: nameresponse
+            example: !include examples/ssnNameVerificationResponseExample.raml
+      404:
+        body:
+          application/json:
+            type: nameresponse
+            example: !include examples/ssnNameVerificationErrorResponseExample.raml      
+            
+/api/SSNPhoneVerification:
+  post:
+    displayName: SSNPhoneVerification
+    description: Get report associated with SSN and phone
+    body:
+      application/json:
+        type: phonerequest
+        example: !include examples/ssnPhoneVerificationRequestExample.raml
+    responses:
+      200:
+        body:
+          application/json:
+            type: phoneresponse
+            example: !include examples/ssnPhoneVerificationResponseExample.raml
+      404:
+        body:
+          application/json:
+            type: phoneresponse
+            example: !include examples/ssnPhoneVerificationErrorResponseExample.raml     
+          
+/api/SSNValidation/GetReport:
+  post:
+    displayName: SSNValidation
+    description: Gets SSN Report
+    body:
+      application/json:
+        type: ssnrequest
+        example: !include examples/ssnValidationRequestExample.raml
+    responses:
+      200:
+        body:
+          application/json:
+            type: ssnresponse
+            example: !include examples/ssnValidationResponseExample.raml
+      404:
+        body:
+          application/json:
+            type: ssnresponse
+            example: !include examples/ssnValidationErrorResponseExample.raml         
+/v1/creditScore/{SSN}:       
+  get:
+    description: Returns the specified credit score
+    displayName: getCreditScore
+    responses:
+        '200':
+          description: Returns the specified credit score
+          body:            
+            application/json:
+              type: equifaxresponse
+              example: !include examples/equifaxResponseexample.raml
+                
+
+
+        '401':
+          description: "'Unauthorized: Access is denied due to invalid credentials'"
+        '404':
+          description: No credit score found
+        '500':
+          description: System Error
+
+/validate/email:
+  get:
+    queryParameters:
+      validateid:
+        required: true
+
+/loan/status:
+  /generate:
+    post:
+  
+  /submit:
+    post:

@@ -1,0 +1,7 @@
+%dw 2.0
+
+type auto_75e88aa9_e68a_46b9_9e59_c9b2dc9330c7_Input_Payload = {|
+  uniqueid: String, 
+  tokentype: String
+|}
+

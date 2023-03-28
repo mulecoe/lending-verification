@@ -1,0 +1,89 @@
+#%RAML 1.0 DataType
+properties:
+  providerViews:
+    type: array
+    description:   ' : Collection of score views by provider (EFX, EXP, TU). _Optional_' 
+    required: false
+    items:
+      properties:              
+        provider:
+          type: string
+          description: ' : A firm which receives, maintains and provides information about consumer''s credit history. There are three national credit reporting agencies (Equifax, Experian and TransUnion. There are many smaller agencies, but almost all of them get information from one or more of the three major agencies. National credit reporting agencies adhere to the requirements of the Fair Credit Reporting Act (FCRA). _Optional_'
+          enum:
+            - EFX
+            - TU
+            - EXP
+            - UNKNOWN
+        score:
+          type: integer
+          description: ' : A score compiled based upon variables in a consumer''s credit file that is indicative of the consumer''s creditworthiness. _Optional_'
+        scoreRanges:
+          type: array
+          required: false
+          description: ' : The list of the credit score ranges and the corresponding score rating for each range associated with the particular score model. _Optional_'
+          items:
+            properties:
+              low:
+                type: integer
+              high:
+                type: integer
+              name:
+                type: string    
+            
+        loanRiskRanges:
+          type: array
+          required: false
+          description: ' : The list of loan risk ranges and the corresponding risk rating for each range associated with a particular score model. The Loan Risk Rating describes how lenders may view the consumer''s level of credit risk based on the consumer''s score. People with higher credit scores have a greater likelihood to repay loans on time, over time. People with lower scores have a higher risk of becoming delinquent on loan payments. _Optional_'
+          items: 
+            properties:
+              low:
+                type: integer
+                description: _Optional_
+              high:
+                type: integer
+                description: _Optional_
+              name:
+                type: string
+                description: _Optional_       
+        scoreReasons:
+          type: array
+          required: false
+          description: ' : A list of codes returned based on the Vantage 3.0 method of scoring that are either positive or negative adverse actions. _Optional_'
+          items:
+            properties:
+              code:
+                type: string
+                description: _Optional_
+              description:
+                type: string
+                description: _Optional_
+              creditScoreFactorEffect:
+                type: string
+                description: _Optional_
+                enum:
+                  - HELPING
+                  - HURTING
+                  - NEUTRAL      
+  id:
+    type: string
+    required: false
+    description: ' : ID indicates an object ID used in the scenario that there are multiples of the object in question. _Optional_'
+  scoreType:
+    type: string
+    required: false
+    description: ' : Type of score (1B vs. 3B). _Optional_'
+    enum:
+      - US_EFX
+      - US_3B
+  scoreModel:
+    required: false
+    type: string
+    description: ' : Model used to derive the score from the credit file. _Optional_'
+    enum:
+      - VANTAGE
+      - ERS
+      - FICO
+      - UNKNOWN
+  generatedDate:
+    type: string
+    description: ' : Date the score is generated. _Optional_'

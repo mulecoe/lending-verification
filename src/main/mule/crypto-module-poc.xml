@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:crypto="http://www.mulesoft.org/schema/mule/crypto"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/crypto http://www.mulesoft.org/schema/mule/crypto/current/mule-crypto.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<crypto:pgp-config name="Crypto_Pgp_Encryption" doc:name="Crypto Pgp" doc:id="cf0793fc-a75b-4586-a660-32b38877a236" publicKeyring="pgp-keys\public.asc.gpg" >
+		<crypto:pgp-key-infos >
+			<crypto:pgp-asymmetric-key-info keyId="DE1325C6" fingerprint="BC08154375EC3FC8B8B1D5E87D199A8FDE1325C6" />
+		</crypto:pgp-key-infos>
+	</crypto:pgp-config>
+	<crypto:pgp-config name="Crypto_Pgp_Decryption" doc:name="Crypto Pgp" doc:id="6f944dba-d702-46c7-9ea2-4ecb3306cf9a" privateKeyring="pgp-keys\private.asc.gpg" >
+		<crypto:pgp-key-infos >
+			<crypto:pgp-asymmetric-key-info keyId="DE1325C6" fingerprint="BC08154375EC3FC8B8B1D5E87D199A8FDE1325C6" passphrase="demo-pgp" />
+		</crypto:pgp-key-infos>
+	</crypto:pgp-config>
+	<flow name="pgp-encryption-flow" doc:id="75e88aa9-e68a-46b9-9e59-c9b2dc9330c7" >
+		<ee:transform doc:name="create payload" doc:id="afbc5757-8fb3-49e9-83ba-0d9ed242e8d2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+'{"uniqueid" : "' ++ 
+(payload.uniqueid as String)++ '", '++ 
+'"createdDate" : "'++ now() ++ '", "tokentype" : "'++ payload.tokentype ++ '", "email-id" : "' ++ payload.'email-id' ++ '"}']]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="to base 64" doc:id="b27d66a0-0f59-4ea8-a413-a4f87fbb902f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+import * from dw::core::Binaries
+---
+toBase64(payload as Binary)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<crypto:pgp-encrypt doc:name="Pgp encrypt" doc:id="899182f4-321c-4be1-a3e4-d8150994afc1" config-ref="Crypto_Pgp_Encryption" keyId="DE1325C6"/>
+		<ee:transform doc:name="linkid - binary to base 64" doc:id="33739e8f-6735-4a5e-93bc-f749baced90a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+
+output application/java
+
+---
+
+toBase64(payload)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="pgp-decryption-flow" doc:id="081893f1-c65e-4c32-a9ac-6a146418c039" >
+		<ee:transform doc:name="linkid to octet stream" doc:id="5ad47237-3b76-4b39-91c7-21f71676818f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+
+output application/octet-stream
+---
+fromBase64(payload.uuid as String) ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<crypto:pgp-decrypt doc:name="Pgp decrypt" doc:id="ae6188ad-d2df-4532-9bb2-307087356749" config-ref="Crypto_Pgp_Decryption"/>
+		<ee:transform doc:name="binary to original string" doc:id="b5e23bfa-43a3-4c65-97b4-b16a1b681413">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/octet-stream
+import * from dw::core::Binaries
+---
+fromBase64(payload)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="632c205d-fdb1-43e9-a160-5ef0555be711" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+read(payload, "application/json")]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="generate-email_verification_link" doc:id="333ad206-b3a0-4514-bfb1-4d2a2e034e29" >
+		<logger level="INFO" doc:name="Logger" doc:id="98242ca8-3f7a-4f72-bc70-52f5f5a08f56" message="#[payload]"/>
+		<ee:transform doc:name="user profile name" doc:id="bbddc833-457a-45e8-a945-75451652f893" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="sfdata" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Name" : vars.salesforceAggResponse.LoanApplication..Name[0]
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="prepare encryption" doc:id="b00a1f83-f139-4701-89d8-17a4f7f7d754" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	uniqueid : vars.salesforceAggResponse.LoanApplication.Id[0],
+	"email-id" : vars.salesforceAggResponse.Contact..Email[0],
+	tokentype : "posession confirmation"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="get encrypted identifier" doc:id="14cc8921-5ac6-4e21-80cf-d653cce8c272" name="pgp-encryption-flow"/>
+		<ee:transform doc:name="frame URL" doc:id="45662a27-707a-4355-9222-f8fa84eec58e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::URL
+output application/java
+---
+"http://lending-loan-verification-api.sg-s1.cloudhub.io/validate/email?validateid=" ++ payload
+
+//"http://localhost:8081/validate/email?validateid=" ++ payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<parse-template doc:name="verify email template" doc:id="5d488386-1bd1-4671-a557-547d73472098" location="webapp\verify_email.html" target="htmlform" targetValue="#[payload]" outputMimeType="text/html"/>
+		<ee:transform doc:name="prepare send email notification" doc:id="c2b4da64-8480-45ce-807d-780f0ccf8766" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output multipart/form-data
+---
+{
+  "parts": {
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "realtime",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": "Yes"
+    },
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "subject-line",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": "Please verify your Email-Id"
+    },
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "channel",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": "EMAIL"
+    },
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "email-id",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": vars.salesforceAggResponse.Contact..Email[0]
+    },
+    "files": {
+            "headers": {
+                "Content-Disposition": {
+                    "name": "files",
+                    "filename": "verify email.html",
+                    "subtype": "form-data"
+                },
+                "Content-Type": "text/html"
+            },
+            "content": vars.htmlform
+        }
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<http:request method="POST" doc:name="send email" doc:id="54e37646-199f-43f2-9f95-0f21a1c440ef" config-ref="send-email-notification-req" path="${email.sendMail}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="45c9323f-10d9-4dc6-b68f-219bfba0cab3" message="#[payload]"/>
+	</flow>
+	<flow name="email-validation-implFlow" doc:id="6f15481c-fde6-411b-b641-db7af48c87a4" >
+		<choice doc:name="Choice" doc:id="ff5abf33-4e4f-402e-b83b-e7add947c206" >
+			<when expression="#[attributes.queryParams.validateid != null]">
+				<ee:transform doc:name="validateId" doc:id="a6a8657c-29cf-4375-9b7f-b9fda8f653d7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	uuid : attributes.queryParams.validateid
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<flow-ref doc:name="decrypt - get validate id payload" doc:id="1e62f472-e3e2-4f39-b4e4-48e4851e9e90" name="pgp-decryption-flow" />
+				<ee:transform doc:name="decrypted data" doc:id="b21cacb5-1d74-4715-bc83-019b85952563">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="decryptedData"><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+				<set-variable value="#[%dw 2.0&#10;output application/java&#10;---&#10; ((now() as DateTime - (payload.createdDate as DateTime)) as Number {unit: &quot;seconds&quot;}) &gt; ('${expirySeconds}' as Number)]" doc:name="vars.expired" doc:id="ccceeb12-fb49-469e-8723-27ff46d1ebd4" variableName="expired" />
+				<choice doc:name="Choice" doc:id="a8c48498-5b53-45e0-8507-6970c4bacac1">
+			<when expression="#[vars.expired == true]">
+				<ee:transform doc:name="verification link expired" doc:id="fdcba283-df1a-40e1-bf73-e54ae59c1975">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"error": "Verification Link has expired. Please contact customer support."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+						<parse-template doc:name="Parse Template" doc:id="02d4a9c4-9dae-4585-9a25-c8ecc632dd11" location="webapp\link_expired.html"/>
+			</when>
+			<otherwise>
+				<choice doc:name="Choice" doc:id="a04ec29d-87dd-4d16-b80d-d098bad45faa">
+					<when expression='#[payload.tokentype == "posession confirmation"]'>
+						<ee:transform doc:name="prepare email verify update" doc:id="8f7f5928-a265-4cb0-b7e7-fbb2cb529d68">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Id: vars.decryptedData.uniqueid,
+	Email_Verified__c : true,
+	Email_Verification_Source__c : "In Person"
+}]]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<logger level="INFO" doc:name="Logger" doc:id="6af95efb-539d-40bb-9e4b-e5e5c032e394" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+								<salesforce:update doc:name="update email verify" doc:id="801b6cf9-9957-4e4a-b703-f781963d190e" config-ref="Salesforce_Config" type="Loan_Application__c"/>
+								<parse-template doc:name="Parse Template" doc:id="84407a1b-8369-4c7c-aa9f-cd2093461b5d" location="webapp\email_verified_template.html" target="htmlform" targetValue="#[payload]" outputMimeType="text/html"/>
+								<ee:transform doc:name="prepare send email notification" doc:id="b534d8a6-2067-4368-8a21-2715cc338a2a">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output multipart/form-data
+---
+{
+  "parts": {
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "realtime",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": "Yes"
+    },
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "subject-line",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": "Your email has been verified successfully"
+    },
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "channel",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": "EMAIL"
+    },
+    "files": {
+      "headers": {
+        "Content-Disposition": {
+          "name": "email-id",
+          "subtype": "form-data"
+        },
+        "Content-Type": "text/plain"
+      },
+      "content": vars.decryptedData.'email-id'
+    },
+    "files": {
+            "headers": {
+                "Content-Disposition": {
+                    "name": "files",
+                    "filename": "verify email.html",
+                    "subtype": "form-data"
+                },
+                "Content-Type": "text/html"
+            },
+            "content": vars.htmlform
+        }
+  }
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<http:request method="POST" doc:name="send email" doc:id="88e7fda9-3b42-493d-91d3-4f2efff07303" config-ref="send-email-notification-req" path="${email.sendMail}"/>
+								<parse-template doc:name="email verification response" doc:id="4c732a8e-dc5a-4fc8-82f1-f5e2176ed941" location="webapp\email_verified_success.html" outputMimeType="text/html" />
+					</when>
+					<otherwise>
+						<ee:transform doc:name="Transform Message" doc:id="360ad477-99c9-47cf-a5a4-71c5aa283995">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"error":"Form link has been tampered with."
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+								<raise-error doc:name="Raise error" doc:id="15197252-f53e-425b-a64d-546cc300d11a" type="ANY" description="Form link has been tampered with."/>
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="1bd967cb-c2f0-471b-b0c2-c4b1f2029687" type="ANY" description="Link expired. Please ask for a new one."/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

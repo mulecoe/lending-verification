@@ -1,0 +1,62 @@
+#%RAML 1.0 DataType
+
+properties:
+  SSN:
+    type : string
+    description: Social security number
+    required: true
+    example: "051-12-2022"
+    pattern: '\d{3}-\d{2}-\d{4}$' 
+  Address:
+    type: object
+    properties:
+        Addr1:
+          type : string
+          description: Address Line 1
+          required: true
+          example: "7442 SPRING VILLAGE DR "
+        Addr2:
+          type : string
+          description: Address Line 2
+          required: false
+          example: "8765 WINTER VILLAGE GG " 
+        StreetName:
+          type : string
+          description: StreetName
+          required: false
+          example: "SPRINGFIELD 1A"
+        StreetNum:
+          type : string
+          description: StreetNum
+          required: false
+          example: "1A"
+        Apt:
+          type : string
+          description: Apt
+          required: false
+          example: "111"
+        City:
+          type : string
+          description: City
+          required: true
+          example: "SPRINGFIELD"
+        State:
+          type : string
+          description: State
+          required: true
+          example: "VA"
+        Zip:
+          type : string
+          description: Zip
+          required: true
+          example: "22150"
+        County:
+          type : string
+          description: County
+          required: false
+          example: "SPRING COUNTY"
+        Country:
+          type : string
+          description: Country
+          required: false
+          example: "USA"                 

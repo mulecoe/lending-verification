@@ -1,0 +1,12 @@
+%dw 2.0
+
+type auto_ef615ff5_9216_4992_bc12_5f386f0cf7a4_Input_Payload = {|
+  SSN: Null, 
+  Address: {|
+    Addr1: String, 
+    City: Null, 
+    State: Null, 
+    Zip: Null
+  |}
+|}
+

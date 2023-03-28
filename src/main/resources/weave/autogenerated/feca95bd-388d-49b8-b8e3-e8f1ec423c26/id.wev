@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_feca95bd_388d_49b8_b8e3_e8f1ec423c26_Output_Variables_email_id = Any
+
