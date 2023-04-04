@@ -119,7 +119,7 @@ output application/java
 //"http://localhost:8081/validate/email?validateid=" ++ payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<parse-template doc:name="verify email template" doc:id="5d488386-1bd1-4671-a557-547d73472098" location="webapp\verify_email.html" target="htmlform" targetValue="#[payload]" outputMimeType="text/html"/>
+		<parse-template doc:name="verify email template" doc:id="5d488386-1bd1-4671-a557-547d73472098" location="verify_email.html" target="htmlform" targetValue="#[payload]" outputMimeType="text/html"/>
 		<ee:transform doc:name="prepare send email notification" doc:id="c2b4da64-8480-45ce-807d-780f0ccf8766" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -223,7 +223,7 @@ output application/json
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
-						<parse-template doc:name="Parse Template" doc:id="02d4a9c4-9dae-4585-9a25-c8ecc632dd11" location="webapp\link_expired.html"/>
+						<parse-template doc:name="Parse Template" doc:id="02d4a9c4-9dae-4585-9a25-c8ecc632dd11" location="link_expired.html"/>
 			</when>
 			<otherwise>
 				<choice doc:name="Choice" doc:id="a04ec29d-87dd-4d16-b80d-d098bad45faa">
@@ -242,7 +242,7 @@ output application/java
 						</ee:transform>
 						<logger level="INFO" doc:name="Logger" doc:id="6af95efb-539d-40bb-9e4b-e5e5c032e394" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
 								<salesforce:update doc:name="update email verify" doc:id="801b6cf9-9957-4e4a-b703-f781963d190e" config-ref="Salesforce_Config" type="Loan_Application__c"/>
-								<parse-template doc:name="Parse Template" doc:id="84407a1b-8369-4c7c-aa9f-cd2093461b5d" location="webapp\email_verified_template.html" target="htmlform" targetValue="#[payload]" outputMimeType="text/html"/>
+								<parse-template doc:name="Parse Template" doc:id="84407a1b-8369-4c7c-aa9f-cd2093461b5d" location="email_verified_template.html" target="htmlform" targetValue="#[payload]" outputMimeType="text/html"/>
 								<ee:transform doc:name="prepare send email notification" doc:id="b534d8a6-2067-4368-8a21-2715cc338a2a">
 									<ee:message>
 										<ee:set-payload><![CDATA[%dw 2.0
@@ -307,7 +307,7 @@ output multipart/form-data
 									</ee:message>
 								</ee:transform>
 								<http:request method="POST" doc:name="send email" doc:id="88e7fda9-3b42-493d-91d3-4f2efff07303" config-ref="send-email-notification-req" path="${email.sendMail}"/>
-								<parse-template doc:name="email verification response" doc:id="4c732a8e-dc5a-4fc8-82f1-f5e2176ed941" location="webapp\email_verified_success.html" outputMimeType="text/html" />
+								<parse-template doc:name="email verification response" doc:id="4c732a8e-dc5a-4fc8-82f1-f5e2176ed941" location="email_verified_success.html" outputMimeType="text/html" />
 					</when>
 					<otherwise>
 						<ee:transform doc:name="Transform Message" doc:id="360ad477-99c9-47cf-a5a4-71c5aa283995">
