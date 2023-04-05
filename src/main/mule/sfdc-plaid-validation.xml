@@ -120,7 +120,7 @@ output application/java
 [{
 	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
 	Citizenship_Verified__c : payload,
-	Citizenship_Verification_Source__c : "Plaid"
+	Citizenship_Verification_Source__c :if(payload == true) "Plaid" else ""
 }]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
@@ -148,7 +148,7 @@ output application/java
 [{
 	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
 	Name_Verified__c : payload,
-	Name_verification_source__c : "Plaid"
+	Name_verification_source__c : if(payload == true) "Plaid" else ""
 }]]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
@@ -182,7 +182,7 @@ output application/java
 [{
 	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
 	Name_Verified__c : payload.VerificationFlags.VerificationFlag ~= "Y",
-	Name_verification_source__c : "Microbilt"
+	Name_verification_source__c :if(payload.VerificationFlags.VerificationFlag ~= "Y") "Microbilt" else ""
 }]]]></ee:set-payload>
 							</ee:message>
 						</ee:transform>
@@ -307,7 +307,7 @@ output application/java
 [{
 	Id: vars.salesforceAggResponse.LoanApplication.Id[0],
 	SSN_Verified__c : if(payload.IssueDateRange != null) true  else false,
-	SSN_Verification_Source__c : "Microbilt "
+	SSN_Verification_Source__c : if(payload.IssueDateRange != null) "Microbilt " else ""
 }]]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
