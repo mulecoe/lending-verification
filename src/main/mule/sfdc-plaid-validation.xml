@@ -56,6 +56,7 @@ output application/json
 }))[0]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="4f133c42-02b8-492d-be2b-a8ff477aed43" message='#["plaid creds " : payload]'/>
 				<http:request method="POST" doc:name="get plaid profiles" doc:id="1ee9c95c-7faf-46d4-9dbc-fdea3432dbeb" target="plaidProfiles" config-ref="plaid_identity-Http-request" path="/identity/get"/>
 				<logger level="INFO" doc:name="plaid profiles" doc:id="e9af3fff-e909-4318-b589-35ac7c14a110" message="#[vars.plaidProfiles]"/>
 				<async doc:name="Async" doc:id="326e61eb-b7e1-489d-b98e-748af714f367" >
@@ -72,6 +73,7 @@ output application/json
 					</ee:message>
 				</ee:transform>
 			
+
 </when>
 			<otherwise >
 				<ee:transform doc:name="data not found response" doc:id="d1ab039b-a510-4398-8aef-97e0fe57874c" >
