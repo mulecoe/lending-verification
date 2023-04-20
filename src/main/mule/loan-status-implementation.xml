@@ -154,6 +154,7 @@ output application/json
 	"email" : vars.emailID.email
 }]]]></http:query-params>
 		</http:request>
+				<logger level="INFO" doc:name="Logger" doc:id="ac0d4e4f-51b0-4be6-988b-6cd9ca277367" message="#[payload]"/>
 				<ee:transform doc:name="loan applicant status" doc:id="a2a978fa-930c-44ce-8a19-7b22de77a7ff">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
@@ -164,7 +165,8 @@ payload..Status__c[0]]]></ee:set-payload>
 		</ee:transform>
 				<logger level="INFO" doc:name="Logger" doc:id="48cb8819-4e72-44c8-ba08-93f89c2e1eb9" message="#[payload]" />
 				<parse-template doc:name="Parse Template" doc:id="654462f6-52f1-4a4a-b876-2922ee79a9e5" location="progress_bar_template.html" outputMimeType="text/html" />
-			</when>
+			
+</when>
 			<otherwise >
 				<logger level="INFO" doc:name="Logger" doc:id="ad5619b1-9c20-4664-84c8-a1faa6f5639d" message='#["Invalid OTP"]'/>
 				<parse-template doc:name="Parse Template" doc:id="43419908-f457-41e1-bd35-b2e54707d775" location="invalid_otp.html"/>
