@@ -33,7 +33,7 @@ sfdc:
   getStatus: "/lending/email"
 
 plaid:
-  accessToken: "access-sandbox-590e3bc6-ab0b-4d74-9248-fac1164e89d7"
+  accessToken: "access-sandbox-a84ff61b-c453-455e-9272-b85f0d51dc7c"
   getIdentity: "sandbox.plaid.com"
   
 email:
